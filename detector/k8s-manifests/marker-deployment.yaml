@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: marker
+  name: marker
+  namespace: minifigures
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: marker
+  template:
+    metadata:
+      labels:
+        app: marker
+    spec:
+      containers:
+      - image: nginx
+        name: webserver
+        resources: {}
+        ports:
+        - containerPort: 80
+          name: "http-server"
+        volumeMounts:
+        - mountPath: "/usr/share/nginx/html/images/"
+          name: web
+        - name: nginx-index-file
+          mountPath: "/usr/share/nginx/html/"
+      - image: train-imager:latest
+        name: marker
+        resources: {}
+        #command:
+        #- "/bin/bash"
+        #- "-c"
+        #- "sleep 1d"
+        volumeMounts:
+        - mountPath: "/mnt/source"
+          name: originals
+        - mountPath: "/mnt/archive"
+          name: archives
+        - mountPath: "/mnt/web"
+          name: web
+        imagePullPolicy: Never
+      volumes:
+        - name: originals
+          persistentVolumeClaim:
+            claimName: originals-pvc
+        - name: archives
+          persistentVolumeClaim:
+            claimName: archive-pvc
+        - name: web
+          emptyDir: {}
+        - name: nginx-index-file
+          configMap:
+            name: index-html-configmap

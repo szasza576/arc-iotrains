@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#025928">
+        <title>IoTrain</title>
+        <script src="js/url-search-params.js"></script>
+        <script>
+         var page_visible_p = true;
+         var url_params = new URLSearchParams(window.location.search);
+         var img_url = url_params.get('img_url');
+         var refresh_interval = url_params.get('refresh_ms');
+         var img;
+         var img2;
+         function refresh(){
+             if(page_visible_p){
+                 img.src = "original.jpg" + "?" + new Date().getTime();
+                 img2.src = "masked.jpg" + "?" + new Date().getTime();
+             }
+         }
+         function init(){
+             var canvas = document.getElementById("canvas");
+             var context = canvas.getContext("2d");
+             img = new Image();
+             img2 = new Image();
+             img.onload = function(){
+                 canvas.setAttribute("width", img.width*2);
+                 canvas.setAttribute("height", img.height);
+                 context.drawImage(img, 0, 0);
+                 context.drawImage(img2, canvas.width/2, 0);
+                 setTimeout("refresh()", refresh_interval);
+             };
+             img.onerror = function(){
+                 setTimeout("refresh()", 1000);
+             };
+             refresh();
+         }
+         function handleVisibilityChange(){
+             if(document.hidden){
+                 page_visible_p = false;
+             }else{
+                 page_visible_p = true;
+                 refresh();
+             }
+         }
+         document.addEventListener("visibilitychange", handleVisibilityChange, false);
+        </script>
+    </head>
+    <body onload="javascript:init();" style="text-align: center;">
+        <canvas id="canvas" style="max-width: 100%;"></canvas>
+    </body>
+</html>
