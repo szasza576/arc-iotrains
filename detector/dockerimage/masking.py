@@ -8,6 +8,7 @@ import os
 
 scoring_uri = os.environ['scoreendpoint']
 key = os.environ['scorekey']
+threshold = float(os.getenv('confidencethreshold', '0.8'))
 image_file = sys.argv[1]
 
 target_image = image_file.split('.')[0] + "-masked.jpg"
@@ -27,7 +28,7 @@ for detect in detections['boxes']:
     label = detect['label']
     box = detect['box']
     conf_score = detect['score']
-    if conf_score > 0.3:
+    if conf_score > threshold:
         ymin, xmin, ymax, xmax =  box['topY'],box['topX'], box['bottomY'],box['bottomX']
         topleft_x, topleft_y = x * xmin, y * ymin
         bottomright_x, bottomright_y = x * xmax, y * ymax
