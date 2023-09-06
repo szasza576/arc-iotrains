@@ -27,13 +27,12 @@ spec:
           name: web
         - name: nginx-index-file
           mountPath: "/usr/share/nginx/html/"
-      - image: train-imager:latest
+      - image: <YOURACR>.azurecr.io/detector:latest
         name: marker
         resources: {}
-        #command:
-        #- "/bin/bash"
-        #- "-c"
-        #- "sleep 1d"
+        envFrom:
+        - secretRef:
+            name: inference-secret
         volumeMounts:
         - mountPath: "/mnt/source"
           name: originals
