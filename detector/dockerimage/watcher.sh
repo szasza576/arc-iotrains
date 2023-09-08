@@ -22,7 +22,7 @@ while true; do
       # Start scoring
       python3 /home/masking.py "${archivefolder}/${newfile}"
       # Copy to original and the masked files to the webfolder"
-      lastfile=$(ls -tp $archivefolder/*jpg | grep -v '/$' | grep -v masked | head -n 1 | xargs -n 1 basenam)
+      lastfile=$(ls -tp $archivefolder/*jpg | grep -v '/$' | grep -v masked | head -n 1 | xargs -n 1 basename)
       lastmasked=$(ls -tp $archivefolder/*-masked.jpg | grep -v '/$' | head -n 1 | xargs -n 1 basename)
       cp "${archivefolder}/${lastfile}" "${webfolder}/original.jpg"
       cp "${archivefolder}/${lastmasked}" "${webfolder}/masked.jpg"
