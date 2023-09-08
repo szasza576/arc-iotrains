@@ -20,7 +20,7 @@ while true; do
       echo "Start the copy."
       cp --no-preserve=mode "${sourcefolder}/${newfile}" "${archivefolder}/${newfile}" # mv didn't work as it cannot preserve permissions and drops error.
       date -u "+%Y%m%d-%H%M%S"
-      echo "Delete file
+      echo "Delete file"
       rm "${sourcefolder}/${newfile}"
       date -u "+%Y%m%d-%H%M%S"
       echo "Start scoring"
