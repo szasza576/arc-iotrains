@@ -20,7 +20,7 @@ while true; do
       cp --no-preserve=mode "${sourcefolder}/${newfile}" "${archivefolder}/${newfile}"
       rm "${sourcefolder}/${newfile}"
       # Start scoring
-      python3 masking.py "${archivefolder}/${newfile}"
+      python3 /home/masking.py "${archivefolder}/${newfile}"
       # Copy to original and the masked files to the webfolder"
       lastfile=$(ls -tp $archivefolder/*jpg | grep -v '/$' | grep -v masked | head -n 1 | xargs -n 1 basenam)
       lastmasked=$(ls -tp $archivefolder/*-masked.jpg | grep -v '/$' | head -n 1 | xargs -n 1 basename)
