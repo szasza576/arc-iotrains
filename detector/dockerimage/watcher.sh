@@ -1,14 +1,13 @@
 #!/bin/bash
 
-lastfile=$(ls -Art $archivefolder/*jpg | xargs -n 1 basename | grep -v masked | tail -n 1)
-lastmasked=$(ls -Art $archivefolder/*jpg | xargs -n 1 basename | grep masked | tail -n 1)
+lastfile=$(ls -tp $archivefolder/*jpg | grep -v '/$' | grep -v masked | head -n 1 | xargs -n 1 basename)
+lastmasked=$(ls -tp $archivefolder/*-masked.jpg | grep -v '/$' | head -n 1 | xargs -n 1 basename)
 cp "${archivefolder}/${lastfile}" "${webfolder}/original.jpg"
 cp "${archivefolder}/${lastmasked}" "${webfolder}/masked.jpg"
 
 while true; do
-  newfile=$(ls -Art $sourcefolder/*jpg | xargs -n 1 basename | tail -n 1)
+  newfile=$(ls -tp $sourcefolder/*jpg | head -n 1 | xargs -n 1 basename)
   if [ "${sourcefolder}/${newfile}" -nt "${archivefolder}/${lastfile}" ]; then
-    date -u "+%Y%m%d-%H%M%S"
     echo "Processing new file: "$newfile
     recheck=0
     while [[ ! -s "${sourcefolder}/${newfile}" && $recheck -lt 3 ]]; do
@@ -16,23 +15,20 @@ while true; do
       ((recheck++))
     done
     if [ -s "${sourcefolder}/${newfile}" ]; then
-      date -u "+%Y%m%d-%H%M%S"
-      echo "Start the copy."
-      cp --no-preserve=mode "${sourcefolder}/${newfile}" "${archivefolder}/${newfile}" # mv didn't work as it cannot preserve permissions and drops error.
-      date -u "+%Y%m%d-%H%M%S"
-      echo "Delete file"
+      # Copy and delete the latest file.
+      # mv didn't work as it cannot preserve permissions and drops error.
+      cp --no-preserve=mode "${sourcefolder}/${newfile}" "${archivefolder}/${newfile}"
       rm "${sourcefolder}/${newfile}"
-      date -u "+%Y%m%d-%H%M%S"
-      echo "Start scoring"
+      # Start scoring
       python3 masking.py "${archivefolder}/${newfile}"
-      date -u "+%Y%m%d-%H%M%S"
-      echo "Scoring done. Copy to the webfolder"
-      lastfile=$(ls -Art $archivefolder/*jpg | xargs -n 1 basename | grep -v masked | tail -n 1)
-      lastmasked=$(ls -Art $archivefolder/*jpg | xargs -n 1 basename | grep masked | tail -n 1)
+      # Copy to original and the masked files to the webfolder"
+      lastfile=$(ls -tp $archivefolder/*jpg | grep -v '/$' | grep -v masked | head -n 1 | xargs -n 1 basenam)
+      lastmasked=$(ls -tp $archivefolder/*-masked.jpg | grep -v '/$' | head -n 1 | xargs -n 1 basename)
       cp "${archivefolder}/${lastfile}" "${webfolder}/original.jpg"
       cp "${archivefolder}/${lastmasked}" "${webfolder}/masked.jpg"
-      date -u "+%Y%m%d-%H%M%S"
-      echo "Copy done."
+      # Delete uneccessary (all but the last 5) files in the source folder.
+      cd ${sourcefolder}
+      ls -tp | grep -v '/$' | tail -n +6 | xargs -d '\n' -r rm --
     fi
   fi
   sleep 0.2
