@@ -7,55 +7,64 @@ data:
   index.html: |
     <!DOCTYPE html>
     <html lang="en">
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta name="theme-color" content="#025928">
-            <title>IoTrain</title>
-            <script src="js/url-search-params.js"></script>
-            <script>
-             var page_visible_p = true;
-             var url_params = new URLSearchParams(window.location.search);
-             var img_url = url_params.get('img_url');
-             <!-- var refresh_interval = url_params.get('refresh_ms');-->
-             var img;
-             var img2;
-             function refresh(){
-                 if(page_visible_p){
-                     img.src = "images/original.jpg" + "?" + new Date().getTime();
-                     img2.src = "images/masked.jpg"
-                 }
-             }
-             function init(){
-                 var canvas = document.getElementById("canvas");
-                 var context = canvas.getContext("2d");
-                 img = new Image();
-                 img2 = new Image();
-                 img.onload = function(){
-                     canvas.setAttribute("width", img.width*2);
-                     canvas.setAttribute("height", img.height);
-                     context.drawImage(img, 0, 0);
-                     context.drawImage(img2, canvas.width/2, 0);
-                     <!-- setTimeout("refresh()", refresh_interval);-->
-                     setTimeout("refresh()", 1000);
-                 };
-                 img.onerror = function(){
-                     setTimeout("refresh()", 1000);
-                 };
-                 refresh();
-             }
-             function handleVisibilityChange(){
-                 if(document.hidden){
-                     page_visible_p = false;
-                 }else{
-                     page_visible_p = true;
-                     refresh();
-                 }
-             }
-             document.addEventListener("visibilitychange", handleVisibilityChange, false);
-            </script>
-        </head>
-        <body onload="javascript:init();" style="text-align: center;">
-            <canvas id="canvas" style="max-width: 100%;"></canvas>
-        </body>
+    
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#025928">
+        <title>IoTrain</title>
+        <script>
+            var url_params = new URLSearchParams(window.location.search);
+            var refresh_interval = url_params.get('refresh_ms');
+            if (refresh_interval == null) {
+                insertUrlParam("refresh_ms", 1000)
+                refresh_interval = 1000
+            }
+            var img;
+            var img2;
+            var firstTimeDraw = true
+            var context;
+    
+            function init() {
+                var canvas = document.getElementById("canvas");
+                context = canvas.getContext("2d");
+                img = new Image();
+                img2 = new Image();
+                img.onload = function () {
+                    drawImages();
+                }
+                refresh();
+                setInterval("refresh()", refresh_interval)
+            }
+    
+            function refresh() {
+                img.src = "images/original.jpg" + "?" + new Date() //We need to add this so the canvas thinks its a new image, otherwise it does not load it again
+                img2.src = "images/masked.jpg" + "?" + new Date() //We need to add this so the canvas thinks its a new image, otherwise it does not load it again
+            }
+    
+            function drawImages() {
+                if (firstTimeDraw) {
+                    canvas.setAttribute("width", img.width * 2);
+                    canvas.setAttribute("height", img.height);
+                    firstTimeDraw = false;
+                }
+                context.drawImage(img, 0, 0);
+                context.drawImage(img2, canvas.width / 2, 0);
+            }
+    
+            function insertUrlParam(key, value) {
+                if (history.pushState) {
+                    let searchParams = new URLSearchParams(window.location.search);
+                    searchParams.set(key, value);
+                    let newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?' + searchParams.toString();
+                    window.history.pushState({ path: newurl }, '', newurl);
+                }
+            }
+        </script>
+    </head>
+    
+    <body onload="javascript:init();" style="text-align: center;">
+        <canvas id="canvas" style="max-width: 100%;"></canvas>
+    </body>
+    
     </html>
