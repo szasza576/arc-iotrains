@@ -15,8 +15,9 @@ while true; do
       ((recheck++))
     done
     if [ -s "${sourcefolder}/${newfile}" ]; then
-      mv "${sourcefolder}/${newfile}" "${archivefolder}/${newfile}"
       python3 masking.py "${archivefolder}/${newfile}"
+      mv "${sourcefolder}/${newfile}" "${archivefolder}/${newfile}"
+      mv "${sourcefolder}/.*-masked.jpg" "${archivefolder}/"
       lastfile=$(ls -Art $archivefolder/*jpg | xargs -n 1 basename | grep -v masked | tail -n 1)
       lastmasked=$(ls -Art $archivefolder/*jpg | xargs -n 1 basename | grep masked | tail -n 1)
       cp "${archivefolder}/${lastfile}" "${webfolder}/original.jpg"
