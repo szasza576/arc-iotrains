@@ -29,6 +29,7 @@ while true; do
       # Delete uneccessary (all but the last 5) files in the source folder.
       cd ${sourcefolder}
       ls -tp | grep -v '/$' | tail -n +6 | xargs -d '\n' -r rm --
+      cd /home
     fi
   fi
   sleep 0.2

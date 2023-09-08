@@ -11,7 +11,6 @@ if [ -z ${AppCustomLocationName+x} ]; then AppCustomLocationName="iotrains-app-s
 if [ -z ${StorageClass+x} ]; then StorageClass="default"; fi
 if [ -z ${ACRName+x} ]; then ACRName="iotrainsacr"; fi
 if [ -z ${AMLExtName+x} ]; then AMLExtName="iotrains-ml"; fi
-if [ -z ${AMLIdentityName+x} ]; then AMLIdentityName="iotrains-ml-identity"; fi
 if [ -z ${ArcMLExtIdentityName+x} ]; then ArcMLExtIdentityName="iotrains-arc-identity"; fi
 if [ -z ${MLWorkspaceName+x} ]; then MLWorkspaceName="aml-iotrains"; fi
 
@@ -89,11 +88,11 @@ az k8s-extension create \
   --cluster-type connectedClusters \
   --extension-type Microsoft.AzureMonitor.Containers \
   --configuration-settings logAnalyticsWorkspaceResourceID="${LogAnalyticsWorkspaceResourceId}" \
-  --configuration-settings omsagent.resources.daemonset.limits.cpu="150m" \
-  --configuration-settings omsagent.resources.daemonset.limits.memory="600Mi" \
-  --configuration-settings omsagent.resources.daemonset.requests.memory="300Mi" \
-  --configuration-settings omsagent.resources.deployment.limits.cpu="1" \
-  --configuration-settings omsagent.resources.deployment.limits.memory="750Mi"
+  --configuration-settings amalogs.resources.daemonsetlinux.limits.cpu="150m" \
+  --configuration-settings amalogs.resources.daemonsetlinux.limits.memory="600Mi" \
+  --configuration-settings amalogs.resources.daemonsetlinux.requests.memory="300Mi" \
+  --configuration-settings amalogs.resources.deployment.limits.cpu="1" \
+  --configuration-settings amalogs.resources.deployment.limits.memory="750Mi"
 
 # Deploy AppService extension
 echo "Deploy AppService extension..."
@@ -110,13 +109,13 @@ az k8s-extension create \
     --configuration-settings "Microsoft.CustomLocation.ServiceAccount=default" \
     --configuration-settings "appsNamespace=${AppExtNamespace}" \
     --configuration-settings "clusterName=${AppEnvironmentName}" \
-    --configuration-settings "keda.enabled=true" \
+    --configuration-settings "keda.enabled=false" \
     --configuration-settings "buildService.storageClassName=${StorageClass}" \
     --configuration-settings "buildService.storageAccessMode=ReadWriteOnce" \
     --configuration-settings "customConfigMap=${AppExtNamespace}/kube-environment-config" \
     --configuration-settings "logProcessor.appLogs.destination=log-analytics" \
-    --configuration-protected-settings "logProcessor.appLogs.logAnalyticsConfig.customerId=${LogAnalyticsWorkspaceIdEnc}" \
-    --configuration-protected-settings "logProcessor.appLogs.logAnalyticsConfig.sharedKey=${LogAnalyticsKeyEnc}"
+    --config-protected-settings "logProcessor.appLogs.logAnalyticsConfig.customerId=${LogAnalyticsWorkspaceIdEnc}" \
+    --config-protected-settings "logProcessor.appLogs.logAnalyticsConfig.sharedKey=${LogAnalyticsKeyEnc}"
 
 ExtensionId=$(az k8s-extension show \
     --cluster-type connectedClusters \
@@ -175,11 +174,18 @@ az k8s-extension create \
   --cluster-type connectedClusters  \
   --scope cluster
 
+# Get the ResourceID of the ACR
+ACRID=$(az acr show \
+    --name $ACRName \
+    --resource-group $ResourceGroup \
+    --query id \
+    --output tsv)
 
 # Create an Azure ML workspace
 az ml workspace create \
   --resource-group $ResourceGroup \
-  --name $MLWorkspaceName
+  --name $MLWorkspaceName \
+  --container-registry $ACRID
 
 # Create Managed Identity for Arc-K8s
 az identity create \
@@ -199,7 +205,6 @@ ArcK8sID=$(az connectedk8s show \
     --resource-group $ResourceGroup \
     --query id \
     --output tsv)
-
 
 az ml compute attach \
   --resource-group $ResourceGroup \
