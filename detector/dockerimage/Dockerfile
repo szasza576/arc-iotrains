@@ -11,6 +11,10 @@ COPY requirements.txt .
 COPY watcher.sh .
 COPY arial.ttf .
 
+RUN apt update && \
+    apt install -y curl && \
+    rm -rf /var/lib/{apt,dpkg,cache,log}/
+
 RUN pip install --no-cache-dir -r requirements.txt
 RUN chmod +x watcher.sh
 RUN \
