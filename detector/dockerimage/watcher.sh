@@ -28,8 +28,8 @@ while true; do
       cp "${archivefolder}/${lastmasked}" "${webfolder}/masked.jpg"
       # Upload to Azure Blob if parameters are specified
       if [ ! -z "$bloburl" ]; then
-        curl --max-time 1 -X PUT -T ${webfolder}/masked.jpg -H "x-ms-date: $(TZ=GMT date '+%a, %d %h %Y %H:%M:%S %Z')" -H "x-ms-blob-type: BlockBlob" "${bloburl}masked.jpg?${sastoken}" &
-        curl --max-time 1 -X PUT -T ${webfolder}/original.jpg -H "x-ms-date: $(TZ=GMT date '+%a, %d %h %Y %H:%M:%S %Z')" -H "x-ms-blob-type: BlockBlob" "${bloburl}original.jpg?${sastoken}" &
+        curl -sS --max-time 1 -X PUT -T ${webfolder}/masked.jpg -H "x-ms-date: $(TZ=GMT date '+%a, %d %h %Y %H:%M:%S %Z')" -H "x-ms-blob-type: BlockBlob" "${bloburl}masked.jpg?${sastoken}" &
+        curl -sS --max-time 1 -X PUT -T ${webfolder}/original.jpg -H "x-ms-date: $(TZ=GMT date '+%a, %d %h %Y %H:%M:%S %Z')" -H "x-ms-blob-type: BlockBlob" "${bloburl}original.jpg?${sastoken}" &
       fi
       # Delete uneccessary (all but the last 5) files in the source folder.
       cd ${sourcefolder}
