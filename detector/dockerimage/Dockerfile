@@ -8,7 +8,6 @@ WORKDIR /home
 
 COPY masking.py .
 COPY requirements.txt .
-COPY watcher.sh .
 COPY arial.ttf .
 
 RUN apt update && \
@@ -16,6 +15,8 @@ RUN apt update && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/
 
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY watcher.sh .
 RUN chmod +x watcher.sh
 RUN \
     mkdir $sourcefolder && \

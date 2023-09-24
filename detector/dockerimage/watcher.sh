@@ -19,19 +19,20 @@ while true; do
     do
       ((num++))
     done
-    curl -sS --max-time 2 http://${espcamip}/capture -o "${archivefolder}/train_${timestamp}-${num}.jpg"
-
-    # Check if the picture size is bigger than 30K --> check if the camera settings are correct or needs a reconfiguration.
-    # With default settings the file size is around 12K. With our configuration the size is around 60K. 30K is a good threashold.
-    filesize=$(ls -l "${archivefolder}/train_${timestamp}-${num}.jpg" | cut -f 5 -d " ")
-    if [ "$filesize" -lt 30000 ]; then
-      echo "Reconfigure ESP32-CAM"
-      # Set resolution to 720p and high quality
-      curl "http://${espcamip}/control?var=framesize&val=11"
-      curl "http://${espcamip}/control?var=quality&val=4"
-      curl "http://${espcamip}/control?var=dcw&val=1"
-      # Delete wrong file
-      rm "${archivefolder}/train_${timestamp}-${num}.jpg"
+    if curl -sS --max-time 2 http://${espcamip}/capture -o "${archivefolder}/train_${timestamp}-${num}.jpg" 2> /dev/null; then
+      # Check if the picture size is bigger than 30K --> check if the camera settings are correct or needs a reconfiguration.
+      # With default settings the file size is around 12K. With our configuration the size is around 60K. 30K is a good threashold.
+      filesize=$(ls -l "${archivefolder}/train_${timestamp}-${num}.jpg" | cut -f 5 -d " ")
+      if [ "$filesize" -lt 30000 ]; then
+        echo "Reconfigure ESP32-CAM"
+        # Set resolution to 720p and high quality
+        curl "http://${espcamip}/control?var=framesize&val=11"
+        curl "http://${espcamip}/control?var=quality&val=4"
+        curl "http://${espcamip}/control?var=dcw&val=1"
+        # Delete wrong file
+        rm "${archivefolder}/train_${timestamp}-${num}.jpg"
+    else
+      echo "ESP is unreachable. Capture failed."
     fi
   else
     # Copy picture from the local mount --> expect an upload from the Raspberry
