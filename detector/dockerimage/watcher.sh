@@ -17,6 +17,7 @@ while true; do
     curl "http://${espcamip}/control?var=framesize&val=11"
     curl "http://${espcamip}/control?var=quality&val=4"
     # Grab a picture
+    sleep 0.5
     timestamp=$(date -u "+%Y%m%d-%H%M%S")
     num=0
     while [[ -f "${archivefolder}/train_${timestamp}-${num}.jpg" ]]
