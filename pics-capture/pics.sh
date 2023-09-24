@@ -14,7 +14,7 @@ do
     # MJPG format saves directly from the Camera hence there is no encoding by the RPi
     # stream-skip will skip 1 frame and saves the 2nd one. This helps the camera to stabilize the picture and gives smoother series.
     # The filename starts with "train_" then the timestamp and then a number inside the same second.
-    v4l2-ctl --set-fmt-video=width=1920,height=1080,pixelformat=MJPG \
+    v4l2-ctl --set-fmt-video=width=1280,height=720,pixelformat=MJPG \
       --stream-mmap \
       --stream-count=1 \
       --stream-skip=1 \
