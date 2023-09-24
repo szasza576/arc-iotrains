@@ -6,22 +6,13 @@ lastmasked=$(ls -tp $archivefolder/*-masked.jpg | grep -v '/$' | head -n 1 | xar
 cp "${archivefolder}/${lastfile}" "${webfolder}/original.jpg"
 cp "${archivefolder}/${lastmasked}" "${webfolder}/masked.jpg"
 
-    # Set resolution to 720p and high quality
-    curl "http://${espcamip}/control?var=framesize&val=11"
-    curl "http://${espcamip}/control?var=quality&val=4"
-
 while true; do
   # Capture a picture and place it into the Archive folder
   # Note, this part could be moved out to another thread and parallelized with the scoring to speed up the refresh rate.
   if [ ! -z "$espcamip" ]; then
     # Capture picture from ESPCAM
 
-    # Configure ESP32-CAM
-    # Set resolution to 720p and high quality
-    #curl "http://${espcamip}/control?var=framesize&val=11"
-    #curl "http://${espcamip}/control?var=quality&val=4"
     # Grab a picture
-    #sleep 0.5
     timestamp=$(date -u "+%Y%m%d-%H%M%S")
     num=0
     while [[ -f "${archivefolder}/train_${timestamp}-${num}.jpg" ]]
@@ -29,6 +20,19 @@ while true; do
       ((num++))
     done
     curl -sS --max-time 2 http://${espcamip}/capture -o "${archivefolder}/train_${timestamp}-${num}.jpg"
+
+    # Check if the picture size is bigger than 30K --> check if the camera settings are correct or needs a reconfiguration.
+    # With default settings the file size is around 12K. With our configuration the size is around 60K. 30K is a good threashold.
+    filesize=$(ls -l "${archivefolder}/train_${timestamp}-${num}.jpg" | cut -f 5 -d " ")
+    if [ $"filesize" -lt 30000 ]; then
+      echo "Reconfigure ESP32-CAM"
+      # Set resolution to 720p and high quality
+      curl "http://${espcamip}/control?var=framesize&val=11"
+      curl "http://${espcamip}/control?var=quality&val=4"
+      curl "http://${espcamip}/control?var=dcw&val=1"
+      # Delete wrong file
+      rm "${archivefolder}/train_${timestamp}-${num}.jpg"
+    fi
   else
     # Copy picture from the local mount --> expect an upload from the Raspberry
     
