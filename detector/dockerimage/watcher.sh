@@ -38,7 +38,6 @@ while true; do
     
     newfile=$(ls -tp $sourcefolder/*jpg | head -n 1 | xargs -n 1 basename)
     if [ "${sourcefolder}/${newfile}" -nt "${archivefolder}/${lastfile}" ]; then
-      echo "Processing new file: "$newfile
       # Check if the file size is not zero (e.g: it is still under upload)
       # Check 3 times and then step over to the next one.
       recheck=0
@@ -64,6 +63,7 @@ while true; do
   lastfiledate=$(ls -l --time-style="+%s" ${archivefolder}/${lastfile} | cut -f 6 -d " ")
   lastwebdate=$(ls -l --time-style="+%s" ${webfolder}/original.jpg | cut -f 6 -d " ")
   if [ "$lastfiledate" -gt "$lastwebdate" ]; then
+    echo "Processing new file: "$lastfile
     # Start scoring
     python3 /home/masking.py "${archivefolder}/${lastfile}"
     # Copy to original and the masked files to the webfolder"
