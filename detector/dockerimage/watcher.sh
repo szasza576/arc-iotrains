@@ -24,7 +24,7 @@ while true; do
     # Check if the picture size is bigger than 30K --> check if the camera settings are correct or needs a reconfiguration.
     # With default settings the file size is around 12K. With our configuration the size is around 60K. 30K is a good threashold.
     filesize=$(ls -l "${archivefolder}/train_${timestamp}-${num}.jpg" | cut -f 5 -d " ")
-    if [ $"filesize" -lt 30000 ]; then
+    if [ "$filesize" -lt 30000 ]; then
       echo "Reconfigure ESP32-CAM"
       # Set resolution to 720p and high quality
       curl "http://${espcamip}/control?var=framesize&val=11"
