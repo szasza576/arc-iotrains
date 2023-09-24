@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: espcam-ip
+  namespace: minifigures
+data:     
+  espcamip: "192.168.0.131"

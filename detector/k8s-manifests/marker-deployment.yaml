@@ -35,9 +35,18 @@ spec:
         envFrom:
         - secretRef:
             name: inference-secret
+        - secretRef:
+            name: blob-secret
+            optional: true
         env:
         - name: confidencethreshold
           value: "0.7"
+        - name: espcamip
+          valueFrom:
+            configMapKeyRef:
+              name: espcam-ip
+              key: espcamip
+              optional: true
         volumeMounts:
         - mountPath: "/mnt/source"
           name: originals
