@@ -24,7 +24,7 @@ headers["Authorization"] = f"Bearer {key}"
 resp = requests.post(scoring_uri, body, headers=headers)
 #print(resp.text)
 
-i=Image.open(image_file)
+i=Image.open(image_file).convert('RGB')
 draw=D.Draw(i)
 x, y = i.size
 
