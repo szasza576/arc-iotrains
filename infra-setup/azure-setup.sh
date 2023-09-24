@@ -158,6 +158,7 @@ az appservice kube create \
 az acr create \
     --resource-group $ResourceGroup \
     --name $ACRName \
+    --admin-enabled true \
     --sku Basic
 
 # Deploy Machine Learning extension
