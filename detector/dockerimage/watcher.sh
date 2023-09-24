@@ -31,6 +31,7 @@ while true; do
         curl "http://${espcamip}/control?var=dcw&val=1"
         # Delete wrong file
         rm "${archivefolder}/train_${timestamp}-${num}.jpg"
+      fi
     else
       echo "ESP is unreachable. Capture failed."
     fi
