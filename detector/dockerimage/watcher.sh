@@ -6,6 +6,10 @@ lastmasked=$(ls -tp $archivefolder/*-masked.jpg | grep -v '/$' | head -n 1 | xar
 cp "${archivefolder}/${lastfile}" "${webfolder}/original.jpg"
 cp "${archivefolder}/${lastmasked}" "${webfolder}/masked.jpg"
 
+    # Set resolution to 720p and high quality
+    curl "http://${espcamip}/control?var=framesize&val=11"
+    curl "http://${espcamip}/control?var=quality&val=4"
+
 while true; do
   # Capture a picture and place it into the Archive folder
   # Note, this part could be moved out to another thread and parallelized with the scoring to speed up the refresh rate.
@@ -14,10 +18,10 @@ while true; do
 
     # Configure ESP32-CAM
     # Set resolution to 720p and high quality
-    curl "http://${espcamip}/control?var=framesize&val=11"
-    curl "http://${espcamip}/control?var=quality&val=4"
+    #curl "http://${espcamip}/control?var=framesize&val=11"
+    #curl "http://${espcamip}/control?var=quality&val=4"
     # Grab a picture
-    sleep 2
+    #sleep 0.5
     timestamp=$(date -u "+%Y%m%d-%H%M%S")
     num=0
     while [[ -f "${archivefolder}/train_${timestamp}-${num}.jpg" ]]
