@@ -1,4 +1,5 @@
 # Introduction
+This guide walks you through on different aspects of the solution. First the infrasturcture setup including the K8s cluster and the Azure environement setup. Then the Azure ML environment and the model creation. Finally the execution part wich includes the camera setup with Raspberry and/or an ESP32-CAM and deploying the scoring script with the minimal webpage.
 
 # Infra setup
 ## Kubernetes node setup
@@ -53,16 +54,22 @@ Once the variable are configured then
 Run the [azure setup script](/infra-setup/azure-setup.sh)
 
 # Azure ML
-Login into the Studio
+In this section we will train our AI model and prepare for remote deployment.
+
+Go to the Azure portal, find your Azure ML workspace and login into the Studio
+
+## Create pictures
+Create pictures from the object what you would like to detect. In our case these are the Lego figures. More pictures will result better model. I suggest to have pictures with 1000 Lego figures. One pictures can contain multiple figures in the same time.
 
 ## Create DataSet
 - Click on **Data** on the left menu
 - You shall arrive to the **Data assets** page. Click on the **Create** button
-  - Give a name like **Lego_Validator_Set**
-  - Select **Type** as **Folder (uri_folder)**
+  - Give a name like **Lego_figures**
+  - Select **Type** as **Dataset types (from Azure ML v1 APIs) / File**. It is at the most bottom. If you select wrong type then it won't be visible in the Labelling.
   - On the **Data source** page select **From local files**
   - On the **Storage type** keep the recommended **Azure Blob Storage** and the selected **workspaceblobstore**
   - On the **Folder selection** page click on the **Upload** button and select the folder where you stored your pictures
+  - Wait until the upload is done
   - Next-Next-Finish
 
 ## Data Labeling
@@ -70,30 +77,130 @@ Once we have a nice dataset then we need to label/annotate it.
 
 - Click on the **Data Labeling** at the bottom of the left menu
 - Click on Create
-- Give a name like **Minifigures_validator**
+- Give a name like **Minifigures**
 - **Media type** remains as **Image**
 - **Labeling task type** shall be **Object Identification (Bounding Box)** ... **Next**
 - Skip **Add workforce** ... **Next**
-- On the **Select or create data** click on the **Create** button
-  - Give a name like Lego_valid ... **Next**
-  - Select **From Azure storage** as **Data source** ... **Next**
-  - Select the previously used **workspaceblobstore**  ... **Next**
-  - Browse to the folder which holds the pictures. Stay at the folder level and select it.  ... **Next**  ... **Create**
-- Select the freshly created Data asset  ... **Next**
+- On the **Select or create data** select the previously created **Lego_figures** dataset. (Put a checkmark to front of the name.)
 - Skip the Incremental refresh ... **Next**
 - At the **Label categories** add a label like **Minifigure**
 - Skip the **Label instructions** ... **Next**
 - Skip the **Quality control** ... **Next**
 - Disable the **Enable ML assisted labling** (it works only with huge datasets) ... **Create project**
 
+Once the project is ready then select (activate) your project.
+
+- Click on your project like **Minifigures**
+- Click on the **Label data** button at the middle top. This opens an editor and loads one of our picture.
+- Draw a box around all the minifigures. Pay attention to include only the minifigure with his/her accessories.
+- If you marked all minifigures then click on the **Submit** button.
+- Repeat the labelling with all the pictures.
+
+When finished the long droid work and you labelled all your images then you can review and approve them.
+
+- Go to your labelling project's page.
+- Go to the the **Data** tab
+- Select **Review labels**
+- You can scroll through and **Approve** your pictures
+
+Export your work so we can start the training based on that information.
+- Go to your labelling project's page.
+- Click on the **Export**
+- Select **Azure ML Dataset** as Export format
+- Click on **Submit**
+
+Exporting takes couple of seconds.
+
+## Create a compute cluster
+A compute cluster is needed to train our model. You can create a Virtual Machine Scale Set which will automatically scale based on the required amount of jobs.
+
+- At **Virtual machine tier** you can select **Low priority**. This is supercheap but it isn't guaranteed that you get the resource.
+- Select **GPU** as **Virtual machine type**
+- Find the smallest and cheapest VM. At the time of writing it is **Standard_NC4as_T4_v3**
+- Give a name at **Compute name**
+- Leave the minimum at 0 and the maximum at 1
+- Click on **Create**
+
+## (alternative) Create compute instance
+As an alternative of the Compute cluster you can create a single instance. It has benefit if we use it for inferencing or troubleshooting which is NOT the case now henve I suggest to use the Compute cluster but I leave this description here if you wish to go with a single node.
+
+- Click on the **Compute** button at the bottom of the left menu
+- Stay on the **Compute instances** tab and click on the **+New** button
+- Give a fance name to your Compute or leave the auto generated.
+- Select **GPU** as **Virtual machine type**
+- Find the smallest and cheapest VM. At the time of writing it is **Standard_NC4as_T4_v3**
+- On the **Scheduling** page, decrease the autoshutdown to 20 minutes
+- Leave everything on the **Security** page
+- Leave everything on the **Applications** page
+- Skip the **Tags** page
+- Click on **Create**
+
+Creation will take several minutes.
+
+## Training with Automated ML
+Now we prepared our data and we also have some compute capacity. It is the time to train the model. Training a model is a little bit a trial and error method and takes several iterations. Luckily the Auto ML function will do this for us.
+
+- Go to the **Automated ML** site on the left menu
+- Click on the **+New Automated ML job** button
+- Our just exported dataset shall appear hear. Select the **Dataset**. (Mine is Minifigures_20230912_133406)
+- Click **Next**
+- For the **Target column** select **label (List)**
+- Select your **Compute cluster** and click **Next**
+- **yolov5** is automatically selected but we need to fine-tune a bit
+  - Click on the **+Add new hyperparameter**
+    - Name: **learning_rate**
+    - Distribution: **Uniform**
+    - Min: **0.0001**
+    - Max: **0.01**
+    - Click on **Save**
+  - Click on the **+Add new hyperparameter** 
+    - Name: **model_size**
+    - Distribution: **Choice**
+    - Values: **small, medium**
+    - Click on **Save**
+- With this the yolo model is prepared but we can try out other models like ResNet or Faster-RCNN. Let's add several variants to the list and leave it to the AutoML to test them.
+- Click on **+Add new model algorithm** and select **fasterrcnn_resnet34_fpn**
+  - We also can fine-tune with the hyperparameters so let's do it.
+  - Click on the **+Add new hyperparameter**
+    - Name: **learning_rate**
+    - Distribution: **Uniform**
+    - Min: **0.0001**
+    - Max: **0.001**
+    - Click on **Save*
+  - Click on the **+Add new hyperparameter** 
+    - Name: **optimizer**
+    - Distribution: **Choice**
+    - Values: **sgd, adam, adamw**
+    - Click on **Save**
+  - Click on the **+Add new hyperparameter** 
+    - Name: **min_size**
+    - Distribution: **Choice**
+    - Values: **600, 800**
+    - Click on **Save**
+- Click on **+Add new model algorithm** and select **fasterrcnn_resnet50_fpn** (notice the number)
+  - Repeat the same hyperparameter settings like with the fasterrcnn_resnet34_fpn
+- Leave the **Sampling** as **Random**
+- Change the **Iterations** to **10**
+- Select **Bandit** as **Early stopping**
+  - **Slack factor** is **0.2**
+  - **Evaluation interval** is **2**
+  - **Delay evaluation** is **6**
+- Leave the **Concurrent iterations** empty and click on **Next**
+- Leave the **Validation type** as **Auto**
+- Click on **Finish**
+
+Note that the hyperparameters' configuration are copied from the Azure's tutorial from here: https://learn.microsoft.com/en-us/azure/machine-learning/tutorial-auto-train-image-models?view=azureml-api-2&tabs=cli#job-limits
+
+Also note that each model has its own parameter set hence setting the "optimizer" to yolo doesn't make any effect.
+
+Now our traing is on the way and it will take several hours. You can follow the training progress if you go to the **Child jobs** tab. You can also see the results in the **Models** tab. If you created a Compute cluster with higher max value than 1 then you will see parallel child jobs.
 
 
 
+## Register model
 
+## Create Environment
 
-
-
-## Model training
 
 ## Azure-Arc connectivity
 
@@ -111,6 +218,12 @@ sudo chown nobody:nogroup /mnt/k8s-pv-data/train-pics
 ```
 
 ## Train with ESP32-CAM
+
+TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+
+
+
 
 ## Train with Raspberry Pi
 Install Raspbian and setup WiFi.
@@ -198,17 +311,40 @@ kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/d
 kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/pvc-archive.yaml
 kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/pvc-source.yaml
 
+
+
+
+If you use ESP32-CAM then specify its IP address:
+kubectl create configmap espcam-ip -n minifigures \
+--from-literal espcamip="192.168.0.131"
+
+
+Create a secret with your ML endpoint:
+ kubectl create secret generic inference-secret -n minifigures \
+ --from-literal scoreendpoint="http://192.168.0.141/api/v1/endpoint/aml-iotrains-gzjhq/score" \
+ --from-literal scorekey="NGJ3UGhHdnFzeVVtVFZnblU5elByZ3JsM1ZCSzZIamE="
+
+
+Create pull secret for ACR
+
+ACRUser=$(az acr credential show -n $ACRName -g $ResourceGroup --query username --output tsv)
+ACRPassword=$(az acr credential show -n $ACRName -g $ResourceGroup --query 'passwords[0].value' --output tsv)
+
+kubectl create secret docker-registry acr-secret -n minifigures \
+  --docker-server="${ACRName}.azurecr.io" \
+  --docker-username=$ACRUser \
+  --docker-password=$ACRPassword
+
+
 wget https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/marker-deployment.yaml
 sed -i s/"<YOURACR>"/$ACRName/g marker-deployment.yaml
 kubectl apply -f marker-deployment.yaml
 rm marker-deployment.yaml
 
 
-wget https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/marker-secret.yaml
 
 
-https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/marker-deployment.yaml
-sed -i s/"<youracr>"/$ACRName/g boy.ymlsed -i s/"<youracr>"/$ACRName/g boy.yml
+
 
 
 DOCKERPULL SECRET!!!!!!!!!!!!!!!!!

@@ -1,10 +1,9 @@
-# Testrun command: python.exe .\masking.py "c:\\Onedrive\\Barkács\\AzureML-Train\\Python-script\\train_20221102_172715-0.jpg"
-
 import requests
 from PIL import Image, ImageFont, ImageDraw as D
 import json
 import sys
 import os
+import base64
 
 scoring_uri = os.environ['scoreendpoint']
 key = os.environ['scorekey']
@@ -12,10 +11,17 @@ threshold = float(os.getenv('confidencethreshold', '0.8'))
 image_file = sys.argv[1]
 
 target_image = image_file.split('.')[0] + "-masked.jpg"
-data = open(image_file, "rb").read()
-headers = {"Content-Type": "application/octet-stream"}
+img = open(image_file, 'rb').read()
+data = {
+    "input_data": {
+        "columns": ["image"],
+        "data": [base64.encodebytes(img).decode('utf-8')],
+    }
+}
+body = str.encode(json.dumps(data))
+headers = {"Content-Type": "application/json"}
 headers["Authorization"] = f"Bearer {key}"
-resp = requests.post(scoring_uri, data, headers=headers)
+resp = requests.post(scoring_uri, body, headers=headers)
 #print(resp.text)
 
 i=Image.open(image_file)
@@ -24,7 +30,7 @@ x, y = i.size
 
 detections = json.loads(resp.text)
 font = ImageFont.truetype("arial.ttf", size=30)
-for detect in detections['boxes']:
+for detect in detections[0]['boxes']:
     label = detect['label']
     box = detect['box']
     conf_score = detect['score']
