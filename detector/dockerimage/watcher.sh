@@ -56,7 +56,7 @@ while true; do
   lastwebdate=$(ls -l --time-style="+%s" ${webfolder}/original.jpg | cut -f 6 -d " ")
   if [ "$lastfiledate" -gt "$lastwebdate" ]; then
     # Start scoring
-    python3 /home/masking.py "${archivefolder}/${newfile}"
+    python3 /home/masking.py "${archivefolder}/${lastfile}"
     # Copy to original and the masked files to the webfolder"
     lastmasked=$(ls -tp ${archivefolder}/*-masked.jpg | grep -v '/$' | head -n 1 | xargs -n 1 basename)
     cp "${archivefolder}/${lastfile}" "${webfolder}/original.jpg"
