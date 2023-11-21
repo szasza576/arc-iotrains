@@ -65,7 +65,7 @@ Create pictures from the object what you would like to detect. In our case these
 - Click on **Data** on the left menu
 - You shall arrive to the **Data assets** page. Click on the **Create** button
   - Give a name like **Lego_figures**
-  - Select **Type** as **Dataset types (from Azure ML v1 APIs) / File**. It is at the most bottom. If you select wrong type then it won't be visible in the Labelling.
+  - Select **Type** as **Dataset types (from Azure ML v1 APIs) / File**. It is at the most bottom. If you select wrong type then it won't be visible in the Labeling.
   - On the **Data source** page select **From local files**
   - On the **Storage type** keep the recommended **Azure Blob Storage** and the selected **workspaceblobstore**
   - On the **Folder selection** page click on the **Upload** button and select the folder where you stored your pictures
@@ -82,11 +82,11 @@ Once we have a nice dataset then we need to label/annotate it.
 - **Labeling task type** shall be **Object Identification (Bounding Box)** ... **Next**
 - Skip **Add workforce** ... **Next**
 - On the **Select or create data** select the previously created **Lego_figures** dataset. (Put a checkmark to front of the name.)
-- Skip the Incremental refresh ... **Next**
+- Skip the **Incremental refresh** ... **Next**
 - At the **Label categories** add a label like **Minifigure**
 - Skip the **Label instructions** ... **Next**
 - Skip the **Quality control** ... **Next**
-- Disable the **Enable ML assisted labling** (it works only with huge datasets) ... **Create project**
+- Disable the **Enable ML assisted labeling** (it works only with huge datasets) ... **Create project**
 
 Once the project is ready then select (activate) your project.
 
@@ -180,7 +180,7 @@ Now we prepared our data and we also have some compute capacity. It is the time 
 - Click on **+Add new model algorithm** and select **fasterrcnn_resnet50_fpn** (notice the number)
   - Repeat the same hyperparameter settings like with the fasterrcnn_resnet34_fpn
 - Leave the **Sampling** as **Random**
-- Change the **Iterations** to **10**
+- Change the **Iterations** to **10** (or any value what you like)
 - Select **Bandit** as **Early stopping**
   - **Slack factor** is **0.2**
   - **Evaluation interval** is **2**
@@ -195,15 +195,19 @@ Also note that each model has its own parameter set hence setting the "optimizer
 
 Now our traing is on the way and it will take several hours. You can follow the training progress if you go to the **Child jobs** tab. You can also see the results in the **Models** tab. If you created a Compute cluster with higher max value than 1 then you will see parallel child jobs.
 
-
-
 ## Register model
-
-## Create Environment
-
-
-## Azure-Arc connectivity
-
+- Go to the **Automated ML** site on the left menu
+- Select the lastly created project
+- Go to the **Models** tab
+- Select on of the models which has high Mean average
+- Click on **Deploy** and **Real-time deployment**
+- Click on the **More options** at the bottom right
+- Set **Compute type** as **Kubernetes**
+- Select your cluster at the **Select Kubernetes cluster** drop-down list
+- Click on **Next** until you reach the **Compute** tab
+- Set the **Instance type** as **cudainstancetype**
+- Set the **Instance count** as **1**
+- **Next-Next-Create**
 
 # Execution
 
@@ -218,17 +222,20 @@ sudo chown nobody:nogroup /mnt/k8s-pv-data/train-pics
 ```
 
 ## Train with ESP32-CAM
+The ESP32-CAM program is based on the CameraWebServer example with the following tunings:
+- The proper board type is selected at the beginning. Mine is AI thinker but your can be different.
+- Fix IP address is configured to make it easier to find.
+- Brownout detection is disabled so it will be more tolerant to powerbank's voltage fluctuation.
 
-TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-
-
-
-
+Setup:
+- Download the files from [ESP32-CAM folder](https://github.com/szasza576/arc-iotrains/tree/main/ESP32-CAM)
+- Update your WiFi credentials and IP address in the CameraWebServer.ino
+- Compile and Upload with Arduino IDE (or your favorit Arduino tool)
 
 ## Train with Raspberry Pi
 Install Raspbian and setup WiFi.
 
-### WiFi driver setup for Realtek stick
+### WiFi driver setup for Realtek stick (optional, HW specific)
 I have a Realtek WiFi stick which needs a special driver to be compiled. This is HW specific hence you might not need this step.
 ```bash
 sudo apt-get install -y git dkms raspberrypi-kernel-headers bc
@@ -278,7 +285,6 @@ Finally reboot the Raspberry to apply all settings.
 sudo reboot
 ```
 
-
 ### Picture taker
 Download the picture capture script which creates pictures as fast it can.
 ```bash
@@ -287,7 +293,7 @@ wget https://raw.githubusercontent.com/szasza576/arc-iotrains/main/pics-capture/
 chmod +x pics.sh
 ```
 
-If you use a camera which is not v4l2 compatible then you can use another like ```fswebcam```, ```streamer``` or ```ffmpeg```. I have to leave this setup to you as this is HW specific. Note that, the mentioned programs do the jpeg encoding by CPU so it might slow down the whole process. For me a Raspberry B+ (yes, 1st gen) can take pictures in 0.5 second.
+If you use a camera which is not v4l2 compatible then you can use another like ```fswebcam```, ```streamer``` or ```ffmpeg```. I have to leave this setup to you as this is HW specific. Note that, the mentioned programs do the jpeg encoding by CPU so it might slow down the whole process. For me a Raspberry B+ (yes, 1st gen) can take pictures in 0.5 second with v4l2 but it takes 3-5 seconds with the mentioned programs.
 
 You might need to finetune the ```pixelformat``` parameter in the script. The following commands might help to figure out the supported formats by your camera:
 ```bash
@@ -298,35 +304,42 @@ v4l2-ctl --list-formats-ext
 ## Detector
 
 Build image
+```bash
 az acr build -r $ACRName https://github.com/szasza576/arc-iotrains.git#main:detector/dockerimage -f Dockerfile --platform linux -t detector:latest
+```
 
-ENV scoreendpoint=http://192.168.0.143/api/v1/endpoint/minifigures/score
-ENV scorekey=ETPVefMh7pMLIPo4u6j4eyZkBIjXp8gp
-
-
+Deploy the basic Kubernetes components:
+```bash
 kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/namespace.yaml
 kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/html-configmap.yaml
 kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/marker-service.yaml
 kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/pv-source.yaml
 kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/pvc-archive.yaml
 kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/pvc-source.yaml
+```
 
-
-
-
-If you use ESP32-CAM then specify its IP address:
+OPTIONAL Note that, you shall create this ONLY with the ESP32-CAM. If you use ESP32-CAM then specify its IP address in a ConfigMap.
+```bash
 kubectl create configmap espcam-ip -n minifigures \
 --from-literal espcamip="192.168.0.131"
-
+```
 
 Create a secret with your ML endpoint:
- kubectl create secret generic inference-secret -n minifigures \
- --from-literal scoreendpoint="http://192.168.0.141/api/v1/endpoint/aml-iotrains-gzjhq/score" \
- --from-literal scorekey="NGJ3UGhHdnFzeVVtVFZnblU5elByZ3JsM1ZCSzZIamE="
+```bash
+AmlEndpoint=$(az ml online-endpoint list --resource-group $ResourceGroup --workspace-name $MLWorkspaceName --query [0].name --output tsv)
+AmlURI=$(az ml online-endpoint show --name $AmlEndpoint --resource-group $ResourceGroup --workspace-name $MLWorkspaceName --query scoring_uri --output tsv)
+AmlKey=$(az ml online-endpoint get-credentials --name $AmlEndpoint --resource-group $ResourceGroup --workspace-name $MLWorkspaceName --query primaryKey --output tsv)
 
+kubectl create secret generic inference-secret -n minifigures \
+ --from-literal scoreendpoint=$AmlURI \
+ --from-literal scorekey=$AmlKey \
+ --dry-run=client \
+ -o yaml | \
+ kubectl apply -f -
+```
 
 Create pull secret for ACR
-
+```bash
 ACRUser=$(az acr credential show -n $ACRName -g $ResourceGroup --query username --output tsv)
 ACRPassword=$(az acr credential show -n $ACRName -g $ResourceGroup --query 'passwords[0].value' --output tsv)
 
@@ -334,30 +347,59 @@ kubectl create secret docker-registry acr-secret -n minifigures \
   --docker-server="${ACRName}.azurecr.io" \
   --docker-username=$ACRUser \
   --docker-password=$ACRPassword
+```
 
-
+Download the Marker App's manifest file and update the Registry inside it. Then deploy the Marker App:
+```bash
 wget https://raw.githubusercontent.com/szasza576/arc-iotrains/main/detector/k8s-manifests/marker-deployment.yaml
 sed -i s/"<YOURACR>"/$ACRName/g marker-deployment.yaml
 kubectl apply -f marker-deployment.yaml
 rm marker-deployment.yaml
+```
 
+## Webpage credits
+The JavaScript parts of the webpage was built by my friend [Norbi](https://github.com/ncseffai).
 
+## Testing
+Finally if everything was brought together then the containers are running.
 
+Either login in to the Raspberry and start the image taker script:
+```bash
+./pics.sh
+```
 
+Or either power on the ESP32 controller.
 
+The marker app starts grabbing the new images and send them to the ML endpoint. You can see the results on the webpage.
+Get the IP address of the webserver:
+```bash
+kubectl get svc -n minifigures maker-svc
+```
 
+Enter the IP into your browser with http:// prefix (not https):
+```
+http://<MAKER'S IP ADDRESS>
 
-DOCKERPULL SECRET!!!!!!!!!!!!!!!!!
-ACR ADMIN MODE
+#Example:
+http://192.168.0.141
+```
 
+## Troubleshooting
+If you redeploy the AI model and you create a new endpoint then you need to update the credentials as well so you need to re-execute these commands:
+```bash
+AmlEndpoint=$(az ml online-endpoint list --resource-group $ResourceGroup --workspace-name $MLWorkspaceName --query [0].name --output tsv)
+AmlURI=$(az ml online-endpoint show --name $AmlEndpoint --resource-group $ResourceGroup --workspace-name $MLWorkspaceName --query scoring_uri --output tsv)
+AmlKey=$(az ml online-endpoint get-credentials --name $AmlEndpoint --resource-group $ResourceGroup --workspace-name $MLWorkspaceName --query primaryKey --output tsv)
 
-iotrainsacr
-YGWPXwxqvRvMiRtnv7u2mBYALRucDujUCyIIIeFwmQ+ACRAaVJYE
+kubectl create secret generic inference-secret -n minifigures \
+ --from-literal scoreendpoint=$AmlURI \
+ --from-literal scorekey=$AmlKey \
+ --dry-run=client \
+ -o yaml | \
+ kubectl apply -f -
+```
 
-
-kubectl create secret docker-registry acr-secret --docker-server=iotrainsacr.azurecr.io --docker-username=iotrainsacr --docker-password=YGWPXwxqvRvMiRtnv7u2mBYALRucDujUCyIIIeFwmQ+ACRAaVJYE -n minifigures
-
-
-## Webpage
-
-https://github.com/ncseffai
+...and you need to delete the running pod to take the new configuration:
+```bash
+kubectl delete pod -n minifigures -l app=marker
+```

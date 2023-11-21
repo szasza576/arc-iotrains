@@ -24,7 +24,7 @@ az extension add --upgrade --yes --name arcdata
 az extension add --upgrade --yes --name ml
 
 # Activate providers
-providers=(Kubernetes KubernetesConfiguration ExtendedLocation Web AzureArcData)
+providers=(Kubernetes KubernetesConfiguration ExtendedLocation Web AzureArcData ContainerRegistry Relay)
 for p in ${providers[@]}; do
   echo "Activating provider: Microsoft.$p";
   az provider register --namespace Microsoft.${p}
@@ -33,14 +33,13 @@ done
 for p in ${providers[@]}; do
   echo ""
   echo "Testing provider: Microsoft.$p";
-  echo "Test if Microsoft.$p provider is Registered."
   test=$(az provider show -n Microsoft.$p -o table | tail -n1 2>&1)
   while ( echo $test | grep -q "Registering" ); do \
-    echo "Provider is server is still registering..."; \
+    echo "Provider Microsoft.$p is still registering..."; \
     sleep 5; \
     test=$(az provider show -n Microsoft.$p -o table | tail -n1 2>&1); \
   done
-  echo "Microsoft.Kuber$pnetes provider is Registered."
+  echo "Microsoft.$p provider is Registered."
 done
 
 # Create Resource Group if not exist
@@ -124,7 +123,7 @@ ExtensionId=$(az k8s-extension show \
     --name $AppExtName \
     --query id \
     --output tsv)
-    
+
 az resource wait --ids $ExtensionId --custom "properties.installState!='Pending'" --api-version "2020-07-01-preview"
 
 # Create custom location for App Service
@@ -214,6 +213,8 @@ az ml compute attach \
   --name amlarc-compute \
   --resource-id $ArcK8sID \
   --identity-type UserAssigned \
-  --user-assigned-identities $AMLExtIdentityID
+  --user-assigned-identities $AMLExtIdentityID \
+  --namespace azureml
 
+kubectl apply -f https://raw.githubusercontent.com/szasza576/arc-iotrains/main/infra-setup/azure-ml-instancetype.yaml
 # az logout
