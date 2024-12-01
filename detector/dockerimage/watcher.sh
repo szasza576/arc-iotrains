@@ -54,7 +54,6 @@ while true; do
         # Copy and delete the latest file.
         # mv didn't work as it cannot preserve permissions and drops error.
         cp --no-preserve=mode "${sourcefolder}/${newfile}" "${archivefolder}/${newfile}"
-        rm "${sourcefolder}/${newfile}"
         # Delete uneccessary (all but the last 5) files in the source folder.
         cd ${sourcefolder}
         ls -tp | grep -v '/$' | tail -n +6 | xargs -d '\n' -r rm --
@@ -75,6 +74,12 @@ while true; do
     lastmasked=$(ls -tp ${archivefolder}/*-masked.jpg | grep -v '/$' | head -n 1 | xargs -n 1 basename)
     cp "${archivefolder}/${lastfile}" "${webfolder}/original.jpg"
     cp "${archivefolder}/${lastmasked}" "${webfolder}/masked.jpg"
+    # Cleanup old files in the archive folder if the cleanup environment variable is set
+    if [ $cleanup ]; then
+      cd ${archivefolder}
+      ls -tp | grep -v '/$' | tail -n +6 | xargs -d '\n' -r rm --
+      cd /home
+    fi
     # Upload to Azure Blob if parameters are specified
     if [ ! -z "$bloburl" ]; then
       curl -sS --max-time 1 -X PUT -T ${webfolder}/masked.jpg -H "x-ms-date: $(TZ=GMT date '+%a, %d %h %Y %H:%M:%S %Z')" -H "x-ms-blob-type: BlockBlob" "${bloburl}masked.jpg?${sastoken}" &
