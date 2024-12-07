@@ -13,5 +13,5 @@ do
       --stream-count=1 \
       --stream-skip=1 \
       -d /dev/video0 \
-      --stream-to=/mnt/pics/train_${timestamp}-${num}.jpg
+      --stream-to=/mnt/pics/train_${timestamp}.jpg
 done
