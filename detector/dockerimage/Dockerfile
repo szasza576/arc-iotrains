@@ -6,7 +6,6 @@ ENV webfolder=/mnt/web
 
 WORKDIR /home
 
-COPY masking.py .
 COPY requirements.txt .
 COPY arial.ttf .
 
@@ -16,6 +15,7 @@ RUN apt update && \
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY masking.py .
 COPY watcher.sh .
 RUN chmod +x watcher.sh
 RUN \
