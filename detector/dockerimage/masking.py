@@ -1,9 +1,11 @@
 import requests
-from PIL import Image, ImageFont, ImageDraw as D
+from PIL import Image, ImageFile, ImageFont, ImageDraw as D
 import json
 import sys
 import os
 import base64
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 scoring_uri = os.environ['scoreendpoint']
 key = os.environ['scorekey']
