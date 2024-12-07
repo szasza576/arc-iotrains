@@ -77,7 +77,8 @@ while true; do
     # Cleanup old files in the archive folder if the cleanup environment variable is set
     if [ $cleanup ]; then
       cd ${archivefolder}
-      ls -tp | grep -v '/$' | tail -n +6 | xargs -d '\n' -r rm --
+      ls -tp | grep -v '/$' | grep masked | tail -n +6 | xargs -d '\n' -r rm --
+      ls -tp | grep -v '/$' | grep -v masked | tail -n +6 | xargs -d '\n' -r rm --
       cd /home
     fi
     # Upload to Azure Blob if parameters are specified
