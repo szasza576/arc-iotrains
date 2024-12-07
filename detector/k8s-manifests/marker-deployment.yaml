@@ -41,6 +41,8 @@ spec:
         env:
         - name: confidencethreshold
           value: "0.7"
+        - name: cleanup
+          value: "true"
         - name: espcamip
           valueFrom:
             configMapKeyRef:
