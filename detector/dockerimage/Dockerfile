@@ -10,14 +10,17 @@ COPY requirements.txt .
 COPY arial.ttf .
 
 RUN apt update && \
-    apt install -y curl && \
+    apt upgrade -y && \
+    apt install -y curl inotify-tools && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY masking.py .
 COPY watcher.sh .
-RUN chmod +x watcher.sh
+COPY esp-grabber.sh .
+RUN chmod +x watcher.sh && \
+    chmod +x esp-grabber.sh
 RUN \
     mkdir $sourcefolder && \
     mkdir $archivefolder && \
