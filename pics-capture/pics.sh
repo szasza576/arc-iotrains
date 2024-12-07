@@ -2,14 +2,8 @@
 
 while true
 do
-    # Save the date with up to seconds
-    timestamp=$(date -u "+%Y%m%d-%H%M%S")
-    # Check if a file already exist with the same date and add increasing number to the end
-    num=0
-    while [[ -f "/mnt/pics/train_${timestamp}-${num}.jpg" ]]
-    do
-      ((num++))
-    done
+    # Save the date with up to mircoseconds
+    timestamp=$(date -u "+%Y%m%d-%H%M%S-%3N")
     # Create a picture
     # MJPG format saves directly from the Camera hence there is no encoding by the RPi
     # stream-skip will skip 1 frame and saves the 2nd one. This helps the camera to stabilize the picture and gives smoother series.

@@ -16,16 +16,11 @@ while true; do
     # Capture picture from ESPCAM
 
     # Grab a picture
-    timestamp=$(date -u "+%Y%m%d-%H%M%S")
-    num=0
-    while [[ -f "${archivefolder}/train_${timestamp}-${num}.jpg" ]]
-    do
-      ((num++))
-    done
-    if curl -sS --max-time 2 http://${espcamip}/capture -o "${archivefolder}/train_${timestamp}-${num}.jpg"; then
+    timestamp=$(date -u "+%Y%m%d-%H%M%S-%3N")
+    if curl -sS --max-time 2 http://${espcamip}/capture -o "${archivefolder}/train_${timestamp}.jpg"; then
       # Check if the picture size is bigger than 30K --> check if the camera settings are correct or needs a reconfiguration.
       # With default settings the file size is around 12K. With our configuration the size is around 60K. 30K is a good threashold.
-      filesize=$(ls -l "${archivefolder}/train_${timestamp}-${num}.jpg" | cut -f 5 -d " ")
+      filesize=$(ls -l "${archivefolder}/train_${timestamp}.jpg" | cut -f 5 -d " ")
       if [ "$filesize" -lt 30000 ]; then
         echo "Reconfigure ESP32-CAM"
         # Set resolution to 720p and high quality
@@ -33,7 +28,7 @@ while true; do
         curl -sS --max-time 1 "http://${espcamip}/control?var=quality&val=4"
         curl -sS --max-time 1 "http://${espcamip}/control?var=dcw&val=1"
         # Delete wrong file
-        rm "${archivefolder}/train_${timestamp}-${num}.jpg"
+        rm "${archivefolder}/train_${timestamp}.jpg"
       fi
     else
       echo "ESP is unreachable. Capture failed."
